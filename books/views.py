@@ -1,22 +1,14 @@
-from django.shortcuts import render
-from django.http import HttpResponse
-from rest_framework.renderers import JSONRenderer
-from django.views.decorators.csrf import csrf_exempt
 from books.models import Publisher
 from books.serializers import PublisherSerializer
 from rest_framework.parsers import JSONParser
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+
 # Create your views here.
 
 
-class JSONResponse(HttpResponse):
-
-    def __init__(self, data, **kwargs):
-        content = JSONRenderer().render(data)
-        kwargs['content_type'] = "application/json"
-        super(JSONResponse,self).__init__(content, **kwargs)
-
-
-@csrf_exempt
+@api_view(["GET", "POST"])
 def publisher_list(request):
 
     if request.method == "GET":
@@ -25,7 +17,8 @@ def publisher_list(request):
         """
         publishers = Publisher.objects.all()
         serializer = PublisherSerializer(publishers, many=True)
-        return JSONResponse(serializer.data)
+        # Response需要api_view装饰过的视图函数
+        return Response(serializer.data)
 
     elif request.method == "POST":
         """
@@ -35,25 +28,23 @@ def publisher_list(request):
         serializer = PublisherSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
-            return JSONResponse(serializer.data, status=201)
-        return JSONResponse(serializer.errors, status=400)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-
-@csrf_exempt
+@api_view(["GET", "PUT", "DELETE"])
 def publisher_detail(request, pk):
     try:
         publisher = Publisher.objects.get(pk=pk)
     except Publisher.DoesNotExist:
-        return HttpResponse(status=404)
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
     if request.method == "GET":
         """
         处理GET请求，获取单个对象
         """
         serializer = PublisherSerializer(publisher)
-        return JSONResponse(serializer.data)
+        return Response(serializer.data)
 
     elif request.method == 'PUT':
         """
@@ -63,12 +54,12 @@ def publisher_detail(request, pk):
         serializer = PublisherSerializer(publisher, data=data)
         if serializer.is_valid():
             serializer.save()
-            return JSONResponse(serializer.data)
-        return JSONResponse(serializer.errors, status=400)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
         '''
         DELETE请求，删除对象
         '''
         publisher.delete()
-        return HttpResponse(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)
