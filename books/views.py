@@ -68,8 +68,16 @@ def publisher_detail(request, pk):
 
 
 class AuthorList(APIView):
-
+    """
+    获取作者列表、创建作者，需要重写对应的请求方法对应的方法（get、post、put、delete），注意，要小写。
+    """
     def get(self, request, format=None):
+        """
+        处理GET请求，APIView会自动传入request对象和format参数
+        :param request: 
+        :param format: 
+        :return: 
+        """
         authors = Author.objects.all()
         serializer = AuthorSerializer(authors, many=True)
         return Response(serializer.data)
@@ -83,11 +91,24 @@ class AuthorList(APIView):
 
 
 class AuthorDetail(APIView):
-
+    """
+    获取详细信息、修改、删除作者
+    """
     def get_object(self, pk):
+        """
+        公共方法，用来获取要编辑的对象
+        :param pk: 主键
+        :return: 
+        """
         try:
             return Author.objects.get(pk=pk)
         except Author.DoesNotExist:
+            """
+            如果要编辑的对象不存在，抛出django.http.Http404异常，APIView会自动捕获这个异常并以有好的形式返回这个错误，类似如下
+            {
+              "detail": "Not found."
+            }
+            """
             raise Http404
 
     def get(self, request, pk, format=None):
