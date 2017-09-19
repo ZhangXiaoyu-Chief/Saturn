@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from books.models import Publisher, Author
+from books.models import Publisher, Author, Book
 
 
 class PublisherSerializer(serializers.Serializer):
@@ -42,3 +42,10 @@ class AuthorSerializer(serializers.Serializer):
         instance.save()
 
         return instance
+
+
+class BookSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Book
+        fields = ("id", "title", "authors", "publisher", "publication_date", )
+

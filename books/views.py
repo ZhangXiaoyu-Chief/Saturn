@@ -1,11 +1,13 @@
-from books.models import Publisher, Author
-from books.serializers import PublisherSerializer, AuthorSerializer
+from books.models import Publisher, Author, Book
+from books.serializers import PublisherSerializer, AuthorSerializer, BookSerializer
 from rest_framework.parsers import JSONParser
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 from django.http import Http404
+from rest_framework import permissions
+from books.permissions import CheckPermissionToAction
 
 # Create your views here.
 
@@ -127,4 +129,68 @@ class AuthorDetail(APIView):
     def delete(self, request, pk, format=None):
         author = self.get_object(pk)
         author.delete()
+        return Response(status.HTTP_204_NO_CONTENT)
+
+
+class BookList(APIView):
+    """
+    获取图书列表、创建图书
+    """
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly, CheckPermissionToAction,)
+
+    def get(self, request, format=None):
+        """
+        处理GET请求，APIView会自动传入request对象和format参数
+        :param request: 
+        :param format: 
+        :return: 
+        """
+        books = Book.objects.all()
+        serializer = BookSerializer(books, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, format=None):
+        serializer = BookSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class BookDetail(APIView):
+    """
+    获取详细信息、修改、删除图书
+    """
+    # 定以视图类，按照顺序调用
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly, CheckPermissionToAction)
+
+    def get_object(self, pk):
+        try:
+            return Book.objects.get(pk=pk)
+        except Book.DoesNotExist:
+            """
+            如果要编辑的对象不存在，抛出django.http.Http404异常，APIView会自动捕获这个异常并以有好的形式返回这个错误，类似如下
+            {
+              "detail": "Not found."
+            }
+            """
+            raise Http404
+
+    def get(self, request, pk, format=None):
+        book = self.get_object(pk)
+        serializer = BookSerializer(book)
+        return Response(serializer.data)
+
+    def put(self, request, pk, format=None):
+        book = self.get_object(pk)
+        self.check_object_permissions(self.request, book)
+        serializer = BookSerializer(book, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, format=None):
+        book = self.get_object(pk)
+        book.delete()
         return Response(status.HTTP_204_NO_CONTENT)
