@@ -183,6 +183,7 @@ class BookDetail(APIView):
 
     def put(self, request, pk, format=None):
         book = self.get_object(pk)
+        # 手动触发对象权限检查，后期可以结合django-guardian实现对象级别的权限控制
         self.check_object_permissions(self.request, book)
         serializer = BookSerializer(book, data=request.data)
         if serializer.is_valid():
